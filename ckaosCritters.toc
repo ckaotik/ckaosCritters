@@ -1,0 +1,10 @@
+## Interface: 60000
+## Author: ckaotik
+## Title: ckaosCritters
+## Version: 6.0v1
+## SavedVariables: ckaosCrittersDB
+
+## LoadOnDemand: 1
+## LoadWith: Blizzard_PetJournal
+
+ckaosCritters.lua
