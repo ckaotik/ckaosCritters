@@ -426,7 +426,7 @@ addon:SetScript('OnEvent', function(self, event, ...)
 		for teamIndex, team in ipairs(addon.db.teams) do
 			for memberIndex = 1, MAX_ACTIVE_PETS do
 				local petID = team[memberIndex].petID
-				if petID:find('^0x') then
+				if petID and petID:find('^0x') then
 					-- convert petID to WoD format
 					team[memberIndex].petID = 'BattlePet-0-'..petID:sub(-12)
 				end
