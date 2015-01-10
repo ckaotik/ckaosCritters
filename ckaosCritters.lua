@@ -414,30 +414,34 @@ end
 -- ================================================
 --  Initialization
 -- ================================================
+function addon:OnEnable()
+	-- verify saved variables
+	if not _G[addonName..'DB'] then _G[addonName..'DB'] = {} end
+	addon.db = _G[addonName..'DB']
+	if not addon.db.teams then addon.db.teams = {} end
+
+	-- verify teams
+	for teamIndex, team in ipairs(addon.db.teams) do
+		for memberIndex = 1, MAX_ACTIVE_PETS do
+			local petID = team[memberIndex].petID
+			if petID and petID:find('^0x') then
+				-- convert petID to WoD format
+				team[memberIndex].petID = 'BattlePet-0-'..petID:sub(-12)
+			end
+		end
+	end
+	-- update current set when team changes
+	hooksecurefunc('PetJournal_UpdatePetLoadOut', addon.Update)
+
+	hooksecurefunc('UnitPopup_HideButtons', CustomizeDropDowns)
+	table.insert(UnitPopupMenus['TARGET'], #UnitPopupMenus['TARGET'], 'PET_SHOW_IN_JOURNAL')
+
+	self:UnregisterEvent('ADDON_LOADED')
+end
+
 addon:RegisterEvent('ADDON_LOADED')
 addon:SetScript('OnEvent', function(self, event, ...)
 	if event == 'ADDON_LOADED' and ... == addonName then
-		-- verify saved variables
-		if not _G[addonName..'DB'] then _G[addonName..'DB'] = {} end
-		addon.db = _G[addonName..'DB']
-		if not addon.db.teams then addon.db.teams = {} end
-
-		-- verify teams
-		for teamIndex, team in ipairs(addon.db.teams) do
-			for memberIndex = 1, MAX_ACTIVE_PETS do
-				local petID = team[memberIndex].petID
-				if petID and petID:find('^0x') then
-					-- convert petID to WoD format
-					team[memberIndex].petID = 'BattlePet-0-'..petID:sub(-12)
-				end
-			end
-		end
-		-- update current set when team changes
-		hooksecurefunc('PetJournal_UpdatePetLoadOut', addon.Update)
-
-		hooksecurefunc('UnitPopup_HideButtons', CustomizeDropDowns)
-		table.insert(UnitPopupMenus['TARGET'], #UnitPopupMenus['TARGET'], 'PET_SHOW_IN_JOURNAL')
-
-		self:UnregisterEvent('ADDON_LOADED')
+		addon:OnEnable()
 	end
 end)
