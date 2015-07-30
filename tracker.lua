@@ -4,115 +4,6 @@ local addonName, addon, _ = ...
 -- GLOBALS: WatchFrame, WatchFrameHeaderDropDown, WatchFrame_AddObjectiveHandler, WatchFrame_Update, WatchFrame_SetLine, WATCHFRAME_QUEST_OFFSET, WATCHFRAME_TYPE_OFFSET, WATCHFRAME_INITIAL_OFFSET, WATCHFRAMELINES_FONTSPACING
 -- GLOBALS: TRADESKILLS, TRADESKILL_RANK, GetProfessions, GetProfessionInfo, C_PetJournal, BATTLE_PET_SOURCE_5, ITEM_QUALITY_COLORS
 local DASH_NONE, DASH_SHOW, DASH_HIDE, DASH_ICON = 0, 1, 2, 3
-
--- ================================================
--- Skill progress tracker
--- ================================================
-local MAX_SKILL = PROFESSION_RANKS[ #PROFESSION_RANKS ][1]
-local WATCHFRAME_SKILLLINES = {}
-local skillLineIndex = 1
-
-local function WatchFrame_GetSkillLine()
-	local line = WATCHFRAME_SKILLLINES[skillLineIndex]
-	if not line then
-		WATCHFRAME_SKILLLINES[skillLineIndex] = WatchFrame.lineCache:GetFrame()
-		line = WATCHFRAME_SKILLLINES[skillLineIndex]
-	end
-	if not line.icon then
-		line.icon = line:CreateTexture('$parentIcon')
-		line.icon:SetSize(16, 16)
-		line.icon:SetPoint("TOPLEFT", 0, -1)
-	end
-
-	line:Reset()
-	skillLineIndex = skillLineIndex + 1
-
-	return line
-end
-local function WatchFrame_ReleaseUnusedSkillLines()
-	local line
-	for i = skillLineIndex, #WATCHFRAME_SKILLLINES do
-		line = WATCHFRAME_SKILLLINES[i]
-		if line.progress then
-			line.progress:SetValue(0)
-			line.progress:Hide()
-		end
-		line.dash:SetWidth(0)
-		line.icon:Hide()
-		line:Hide()
-		line.frameCache:ReleaseFrame(line)
-		WATCHFRAME_SKILLLINES[i] = nil
-	end
-end
-local function DisplaySkillTracker(lineFrame, nextAnchor, maxHeight, frameWidth)
-	skillLineIndex = 1 -- reset count or we get everything dozens of times!
-	if #(MidgetLocalDB.trackProfession) == 0 then
-		WatchFrame_ReleaseUnusedSkillLines()
-		return nextAnchor, 0, 0, 0
-	end
-
-	local line, previousLine
-	local profession, skillName, texture, current, max, progress
-	for i = 1, select('#', GetProfessions()) do
-		profession = select(i, GetProfessions())
-		if profession and MidgetLocalDB.trackProfession[i] then
-			skillName, texture, current, max = GetProfessionInfo(profession)
-			if current < math.max(max, MAX_SKILL) then
-				if skillLineIndex == 1 then
-					-- header
-					line = WatchFrame_GetSkillLine()
-					WatchFrame_SetLine(line, previousLine, -WATCHFRAME_QUEST_OFFSET, true, TRADESKILLS, DASH_NONE)
-					if not previousLine then
-						line:SetPoint("RIGHT", lineFrame, "RIGHT", 0, 0)
-						line:SetPoint("LEFT", lineFrame, "LEFT", 0, 0)
-						if nextAnchor then
-							line:SetPoint("TOP", nextAnchor, "BOTTOM", 0, -WATCHFRAME_TYPE_OFFSET)
-						else
-							line:SetPoint("TOP", lineFrame, "TOP", 0, -WATCHFRAME_INITIAL_OFFSET)
-						end
-					end
-					line:Show()
-					previousLine = line
-				end
-
-				-- progress data
-				line = WatchFrame_GetSkillLine()
-				WatchFrame_SetLine(line, previousLine, WATCHFRAMELINES_FONTSPACING-3, false, "", DASH_ICON)
-
-				line.icon:SetTexture(texture)
-				line.icon:Show()
-
-				if not line.progress then
-					line.progress = CreateFrame("StatusBar", "$parentProgressBar", line, "AchievementProgressBarTemplate") -- FIXME
-					line.progress:SetPoint("LEFT", line.text, "LEFT", 2, 0)
-					line.progress:SetPoint("RIGHT", line.text, "RIGHT")
-				end
-				line.progress:Show()
-				line.progress:SetMinMaxValues(0, max)
-				line.progress:SetValue(current)
-				line.progress.text:SetFormattedText(TRADESKILL_RANK, current, max)
-
-				if current == max then
-					line.progress:SetStatusBarColor(.6, 0, 0, 1)
-				elseif current >= max - 25 and max < MAX_SKILL then
-					line.progress:SetStatusBarColor(.6, .6, 0, 1)
-				else
-					line.progress:SetStatusBarColor(0, .6, 0, 1)
-				end
-
-				line:Show()
-				previousLine = line
-			end
-		end
-	end
-	WatchFrame_ReleaseUnusedSkillLines()
-	-- nextAnchor, maxLineWidth, numObjectives, numPopUps
-	return previousLine or nextAnchor, 0, previousLine and 1 or 0, 0
-end
-
--- ================================================
--- Current battle team tracker
--- ================================================
 local MAX_PET_LEVEL, MAX_ACTIVE_PETS = 25, 3
 local WATCHFRAME_TEAMLINES = {}
 local teamLineIndex = 1
@@ -276,28 +167,9 @@ local function updateHandler(event, ...)
 	WatchFrame_Update()
 end
 
-local function CreateSkillTrackingCheckboxes()
-	local function OnClick(self, btn)
-		MidgetLocalDB.trackProfession[ self:GetID() ] = not MidgetLocalDB.trackProfession[ self:GetID() ]
-		WatchFrame_Update()
-	end
-
-	for i, tradeskill in pairs({'PrimaryProfession1', 'PrimaryProfession2', 'SecondaryProfession1', 'SecondaryProfession2', 'SecondaryProfession3', 'SecondaryProfession4'}) do
-		local button = CreateFrame('CheckButton', '$parentTrackSkill', _G[tradeskill], 'UICheckButtonTemplate')
-		button:SetSize(18, 18)
-		button:SetID(i)
-		button:SetPoint('RIGHT', '$parentProfessionName', 'LEFT', -2, 0)
-		button:SetChecked(MidgetLocalDB.trackProfession[i] or false)
-		button:SetScript('OnClick', OnClick)
-	end
-end
-
 hooksecurefunc(addon, 'OnEnable', function()
 	WatchFrame_AddObjectiveHandler(DisplayTeamTracker)
-	WatchFrame_AddObjectiveHandler(DisplaySkillTracker)
 
-	CreateSkillTrackingCheckboxes()
-	self:RegisterEvent("CHAT_MSG_SKILL", updateHandler)
 	self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED", updateHandler)
 	self:RegisterEvent("PET_JOURNAL_LIST_UPDATE", updateHandler)
 
