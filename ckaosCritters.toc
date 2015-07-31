@@ -1,6 +1,6 @@
-## Interface: 60100
+## Interface: 60200
 ## Author: ckaotik
-## Version: 6.1v1
+## Version: 6.2v1
 
 ## Title: ckaosCritters
 ## Notes: Battle pet teams and more
@@ -10,4 +10,4 @@
 ## LoadWith: Blizzard_Collections
 
 ckaosCritters.lua
-#tracker.lua
+tracker.lua
