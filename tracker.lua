@@ -1,5 +1,3 @@
--- if true then return end
-
 local addonName, addon, _ = ...
 
 local MAX_PET_LEVEL, MAX_ACTIVE_PETS = 25, 3
@@ -61,21 +59,19 @@ function TRACKER:Update()
 	TRACKER:EndLayout()
 end
 
+local frame = CreateFrame('Frame')
+frame:SetScript('OnEvent', function(self, event, ...)
+	ObjectiveTracker_Update(OBJECTIVE_TRACKER_UPDATE_MODULE_BATTLEPETTEAM)
+end)
+
 local function InitTracker(self)
 	table.insert(self.MODULES, TRACKER)
 	self.BlocksFrame.BattlePetTeamHeader = CreateFrame('Frame', nil, self.BlocksFrame, 'ObjectiveTrackerHeaderTemplate')
 	TRACKER:SetHeader(self.BlocksFrame.BattlePetTeamHeader, 'Team', 0)
 
-	self:RegisterEvent('UNIT_SPELLCAST_SUCCEEDED', function(self, event, ...)
-		local spellID = select(5, ...)
-		if spellID == 125439 or spellID == 127841 then
-			-- heal pets + revive: visual
-			ObjectiveTracker_Update(OBJECTIVE_TRACKER_UPDATE_MODULE_BATTLEPETTEAM)
-		end
-	end)
-	self:RegisterEvent('PET_JOURNAL_LIST_UPDATE', function(self, event, ...)
-		ObjectiveTracker_Update(OBJECTIVE_TRACKER_UPDATE_MODULE_BATTLEPETTEAM)
-	end)
+	frame:RegisterEvent('BATTLE_PET_CURSOR_CLEAR')
+	frame:RegisterEvent('PET_BATTLE_CLOSE')
+	frame:RegisterEvent('PET_JOURNAL_LIST_UPDATE')
 	ObjectiveTracker_Update(OBJECTIVE_TRACKER_UPDATE_MODULE_BATTLEPETTEAM)
 end
 
