@@ -18,6 +18,7 @@ end
 function TRACKER:Update()
 	TRACKER:BeginLayout()
 	for petIndex = 1, MAX_ACTIVE_PETS do
+		if not addon.db.trackTeam then break end
 		local petID = C_PetJournal.GetPetLoadOutInfo(petIndex)
 		if not petID then break end
 
@@ -69,16 +70,16 @@ local function InitTracker(self)
 	self.BlocksFrame.BattlePetTeamHeader = CreateFrame('Frame', nil, self.BlocksFrame, 'ObjectiveTrackerHeaderTemplate')
 	TRACKER:SetHeader(self.BlocksFrame.BattlePetTeamHeader, 'Team', 0)
 
-	frame:RegisterEvent('BATTLE_PET_CURSOR_CLEAR')
-	frame:RegisterEvent('PET_BATTLE_CLOSE')
-	frame:RegisterEvent('PET_JOURNAL_LIST_UPDATE')
+	frame:RegisterEvent('BATTLE_PET_CURSOR_CLEAR') -- when moving pets between slots
+	frame:RegisterEvent('PET_BATTLE_CLOSE') -- after pet battle
+	frame:RegisterEvent('PET_JOURNAL_LIST_UPDATE') -- after heals
 	ObjectiveTracker_Update(OBJECTIVE_TRACKER_UPDATE_MODULE_BATTLEPETTEAM)
 end
 
-if ObjectiveTrackerFrame.initialized then
-	InitTracker(ObjectiveTrackerFrame)
-else
-	hooksecurefunc('ObjectiveTracker_Initialize', function(frame)
-		InitTracker(frame)
-	end)
-end
+hooksecurefunc(addon, 'OnEnable', function(self)
+	if ObjectiveTrackerFrame.initialized then
+		InitTracker(ObjectiveTrackerFrame)
+	else
+		hooksecurefunc('ObjectiveTracker_Initialize', InitTracker)
+	end
+end)

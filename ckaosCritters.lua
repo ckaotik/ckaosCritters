@@ -1,5 +1,5 @@
 local addonName, addon, _ = ...
-addon = CreateFrame('Frame')
+addon.frame = CreateFrame('Frame')
 _G[addonName] = addon
 
 -- GLOBALS: _G, UIParent, PetBattleFrame, C_PetJournal, C_PetBattles, GameTooltip, ITEM_QUALITY_COLORS, PET_TYPE_SUFFIX, ADD_ANOTHER, GREEN_FONT_COLOR_CODE, YELLOW_FONT_COLOR_CODE, GRAY_FONT_COLOR, NORMAL_FONT_COLOR, UIDROPDOWNMENU_INIT_MENU, StaticPopupDialogs, StaticPopup_Show, UnitPopupMenus, UnitPopupShown, UnitIsBattlePet
@@ -435,13 +435,12 @@ function addon:OnEnable()
 
 	hooksecurefunc('UnitPopup_HideButtons', CustomizeDropDowns)
 	table.insert(UnitPopupMenus['TARGET'], #UnitPopupMenus['TARGET'], 'PET_SHOW_IN_JOURNAL')
-
-	self:UnregisterEvent('ADDON_LOADED')
 end
 
-addon:RegisterEvent('ADDON_LOADED')
-addon:SetScript('OnEvent', function(self, event, ...)
+addon.frame:RegisterEvent('ADDON_LOADED')
+addon.frame:SetScript('OnEvent', function(self, event, ...)
 	if event == 'ADDON_LOADED' and ... == addonName then
 		addon:OnEnable()
+		self:UnregisterEvent(event)
 	end
 end)
