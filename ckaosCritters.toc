@@ -10,4 +10,5 @@
 ## LoadWith: Blizzard_Collections
 
 ckaosCritters.lua
+scanner.lua
 tracker.lua

@@ -70,9 +70,8 @@ local function InitTracker(self)
 	self.BlocksFrame.BattlePetTeamHeader = CreateFrame('Frame', nil, self.BlocksFrame, 'ObjectiveTrackerHeaderTemplate')
 	TRACKER:SetHeader(self.BlocksFrame.BattlePetTeamHeader, 'Team', 0)
 
-	frame:RegisterEvent('BATTLE_PET_CURSOR_CLEAR') -- when moving pets between slots
 	frame:RegisterEvent('PET_BATTLE_CLOSE') -- after pet battle
-	frame:RegisterEvent('PET_JOURNAL_LIST_UPDATE') -- after heals
+	hooksecurefunc('PetJournal_UpdatePetLoadOut', frame:GetScript('OnEvent'))
 	ObjectiveTracker_Update(OBJECTIVE_TRACKER_UPDATE_MODULE_BATTLEPETTEAM)
 end
 

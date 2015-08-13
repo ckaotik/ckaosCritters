@@ -25,21 +25,6 @@ for i = 1, C_PetJournal.GetNumPetTypes() do
 	end
 end
 
--- scanner used to try and fix messed up petIDs
-local scanner, timer = nil, 0
-local updateFrame = CreateFrame('Frame')
-      updateFrame:Hide()
-updateFrame:SetScript('OnUpdate', function(self, elapsed)
-	timer = timer + elapsed
-	if timer > 2 then
-		timer = 0
-		if not scanner or not coroutine.resume(scanner) then
-			self:SetScript('OnUpdate', nil)
-			self:Hide()
-		end
-	end
-end)
-
 StaticPopupDialogs['MIDGET_PETTEAM_DELETE'] = {
 	text = 'Are you sure you want to delete team %d?',
 	button1 = _G.OKAY,
@@ -82,94 +67,6 @@ StaticPopupDialogs['MIDGET_PETTEAM_RENAME'] = {
 	hasEditBox = true,
 }
 
-local function CheckPets()
-	local missingPets, scanSlot = {}, 1
-	for teamIndex, team in ipairs(addon.db.teams) do
-		for slotIndex = 1, MAX_ACTIVE_PETS do
-			local pet = team[slotIndex]
-			if pet and pet.petID and not (C_PetJournal.GetPetInfoByPetID(pet.petID)) then
-				missingPets[pet.petID] = { team = teamIndex, slot = slotIndex, unpack(pet) }
-			end
-		end
-	end
-	if not next(missingPets) then return end
-
-	local scanSlotPetID, _, _, _, isLocked = C_PetJournal.GetPetLoadOutInfo(scanSlot)
-	if isLocked then
-		print('Can\'t scan pet IDs because slot is locked')
-		return
-	end
-
-	local abilityIDs, abilityLevels = {}, {}
-	for index = 1, C_PetJournal.GetNumPets() do
-		local petID, id, owned, _, level, _, revoked, _, _, _, _, _, _, _, canBattle = C_PetJournal.GetPetInfoByIndex(index)
-		if owned and not revoked and canBattle then
-			wipe(abilityIDs); wipe(abilityLevels)
-			C_PetJournal.GetPetAbilityList(id, abilityIDs, abilityLevels)
-
-			for _, data in pairs(missingPets) do
-				local invalid = false
-				for j = 1, 3 do
-					local low, lowLevel   = abilityIDs[j], abilityLevels[j]
-					local high, highLevel = abilityIDs[j+3], abilityLevels[j+3]
-					if data[j] and data[j] ~= low and (level < highLevel or data[j] ~= high) then
-						invalid = true
-						break
-					end
-				end
-				if not invalid then
-					C_PetJournal.SetPetLoadOutInfo(scanSlot, petID, true)
-					PetJournal_UpdatePetLoadOut()
-
-					updateFrame:Show()
-					coroutine.yield(scanner)
-
-					local petID, ability1, ability2, ability3 = C_PetJournal.GetPetLoadOutInfo(scanSlot)
-					local _, _, _, _, _, _, _, name = C_PetJournal.GetPetInfoByPetID(petID)
-					print(YELLOW_FONT_COLOR_CODE..name, '|rwith skills', ability1, ability2, ability3)
-
-					for oldPetID, data in pairs(missingPets) do
-						local skill1, skill2, skill3 = unpack(data)
-						-- print('looking for', skill1, skill2, skill3)
-						if skill1 == ability1 and skill2 == ability2 and skill3 == ability3 then
-							print(GREEN_FONT_COLOR_CODE, 'Matched!|r', data.team..'/'..data.slot, 'with skills', skill1, skill2, skill3)
-							addon.db.teams[data.team][data.slot].petID = petID
-
-							wipe(missingPets[oldPetID])
-							missingPets[oldPetID] = nil
-						end
-					end
-				end
-			end
-		end
-	end
-
-	-- restore previous pet
-	C_PetJournal.SetPetLoadOutInfo(scanSlot, scanSlotPetID, true)
-	coroutine.yield(scanner)
-
-	for oldPetID, data in pairs(missingPets) do
-		local link = 'http://www.wowhead.com/petspecies?filter=cr=15:15:15;crs=0:0:0;crv=' .. strjoin(':', unpack(data))
-		print('Your pet '..data.slot..' in team '..data.team..' could not be found. Please check '..link)
-	end
-
-	addon.UpdateTabs()
-end
-
-StaticPopupDialogs['MIDGET_PETTEAM_SCAN'] = {
-	text = 'It seems some of your pet IDs have changed. Should I try to fix them?|nThis will take some time.',
-	button1 = _G.OKAY,
-	button2 = _G.CANCEL,
-	OnAccept = function()
-		scanner = coroutine.create(CheckPets)
-		coroutine.resume(scanner)
-	end,
-	timeout = 0,
-	whileDead = true,
-	hideOnEscape = true,
-	preferredIndex = 3,
-}
-
 local function OnClick(tab, btn)
 	PlaySound("igCharacterInfoTab")
 	if not tab.teamIndex then
@@ -179,7 +76,7 @@ local function OnClick(tab, btn)
 		addon.DumpTeam(tab.teamIndex)
 	elseif IsControlKeyDown() and btn == 'RightButton' then
 		StaticPopup_Show('MIDGET_PETTEAM_DELETE', tab.teamIndex, nil, tab.teamIndex)
-	elseif tab.teamIndex == addon.db.teams.selected then
+	elseif tab.teamIndex == addon.db.selectedTeam then
 		-- refresh active team
 		-- addon.SaveTeam(tab.teamIndex)
 		addon.UpdateTabs()
@@ -302,7 +199,7 @@ function addon.AddTeam()
 	addon.LoadTeam(index)
 end
 function addon.SaveTeam(index, name)
-	index = index or addon.db.teams.selected
+	index = index or addon.db.selectedTeam
 	local team = index and addon.db.teams[index]
 	if not team then return end
 
@@ -342,7 +239,7 @@ function addon.LoadTeam(index)
 			-- FIXME: C_PetJournal.SetPetLoadOutInfo(i, 0) used to work but doesn't any more
 		end
 	end
-	addon.db.teams.selected = index
+	addon.db.selectedTeam = index
 	PetJournal_UpdatePetLoadOut()
 end
 function addon.DumpTeam(index)
@@ -358,7 +255,7 @@ function addon.DumpTeam(index)
 end
 
 function addon.UpdateTabs()
-	local selected = addon.db.teams.selected or 1
+	local selected = addon.db.selectedTeam or 1
 	for index, team in ipairs(addon.db.teams) do
 		local speciesID, _, _, _, _, _, _, _, icon = C_PetJournal.GetPetInfoByPetID(team[1].petID)
 		local tab = GetTab(index)
@@ -368,9 +265,6 @@ function addon.UpdateTabs()
 
 		tab.teamIndex = index
 		tab.UpdateTooltip = SetTeamTooltip
-		if not speciesID and not scanner then
-			StaticPopup_Show('MIDGET_PETTEAM_SCAN')
-		end
 	end
 
 	local numTeams = #addon.db.teams + 1
@@ -390,8 +284,17 @@ function addon.UpdateTabs()
 end
 
 function addon.Update()
-	if not _G['PetJournal']:IsVisible() then return end
-	addon.SaveTeam()
+	if not _G['PetJournal']:IsVisible() or addon.paused then return end
+	local updateActiveTeam = true
+	for i = 1, MAX_ACTIVE_PETS do
+		local petID, _, _, _, locked = C_PetJournal.GetPetLoadOutInfo(i)
+		if not locked and not petID then
+			updateActiveTeam = false
+			break
+		end
+	end
+	if updateActiveTeam then addon.SaveTeam() end
+
 	addon.UpdateTabs()
 end
 
@@ -415,12 +318,12 @@ end
 --  Initialization
 -- ================================================
 function addon:OnEnable()
-	-- verify saved variables
+	-- setup & update saved variables
 	if not _G[addonName..'DB'] then _G[addonName..'DB'] = {} end
 	addon.db = _G[addonName..'DB']
 	if not addon.db.teams then addon.db.teams = {} end
 
-	-- verify teams
+	-- convert petIDs to WoD GUID
 	for teamIndex, team in ipairs(addon.db.teams) do
 		for memberIndex = 1, MAX_ACTIVE_PETS do
 			local petID = team[memberIndex].petID
@@ -430,6 +333,13 @@ function addon:OnEnable()
 			end
 		end
 	end
+
+	-- selected team variable was moved
+	if not addon.db.selectedTeam then
+		addon.db.selectedTeam = addon.db.teams.selected
+	end
+	addon.db.teams.selected = nil
+
 	-- update current set when team changes
 	hooksecurefunc('PetJournal_UpdatePetLoadOut', addon.Update)
 
@@ -440,7 +350,7 @@ end
 addon.frame:RegisterEvent('ADDON_LOADED')
 addon.frame:SetScript('OnEvent', function(self, event, ...)
 	if event == 'ADDON_LOADED' and ... == addonName then
-		addon:OnEnable()
 		self:UnregisterEvent(event)
+		addon:OnEnable()
 	end
 end)
