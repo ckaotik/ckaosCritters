@@ -2,9 +2,8 @@ local addonName, addon, _ = ...
 
 local MAX_PET_LEVEL, MAX_ACTIVE_PETS = 25, 3
 
-local OBJECTIVE_TRACKER_UPDATE_MODULE_BATTLEPETTEAM = 0x4000 -- TODO
 local TRACKER = ObjectiveTracker_GetModuleInfoTable()
-TRACKER.updateReasonModule = OBJECTIVE_TRACKER_UPDATE_MODULE_BATTLEPETTEAM
+TRACKER.updateReasonEvents = OBJECTIVE_TRACKER_UPDATE_ALL
 TRACKER.usedBlocks = {}
 
 function TRACKER:OnBlockHeaderClick(block, mouseButton)
@@ -62,7 +61,7 @@ end
 
 local frame = CreateFrame('Frame')
 frame:SetScript('OnEvent', function(self, event, ...)
-	ObjectiveTracker_Update(OBJECTIVE_TRACKER_UPDATE_MODULE_BATTLEPETTEAM)
+	ObjectiveTracker_Update()
 end)
 
 local function InitTracker(self)
@@ -72,7 +71,7 @@ local function InitTracker(self)
 
 	frame:RegisterEvent('PET_BATTLE_CLOSE') -- after pet battle
 	hooksecurefunc('PetJournal_UpdatePetLoadOut', frame:GetScript('OnEvent'))
-	ObjectiveTracker_Update(OBJECTIVE_TRACKER_UPDATE_MODULE_BATTLEPETTEAM)
+	ObjectiveTracker_Update()
 end
 
 hooksecurefunc(addon, 'OnEnable', function(self)
