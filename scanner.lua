@@ -125,9 +125,15 @@ StaticPopupDialogs['MIDGET_PETTEAM_SCAN'] = {
 	preferredIndex = 3,
 }
 
-hooksecurefunc(addon, 'OnEnable', function()
+C_PetJournal.GetBattlePetLink("BattlePet-0-0000078CF747")
+
+addon.frame:RegisterEvent('PET_JOURNAL_TRAP_LEVEL_SET')
+function addon.PET_JOURNAL_TRAP_LEVEL_SET(event, ...)
+	addon.frame:UnregisterEvent(event)
+
 	for team, pets in ipairs(addon.db.teams) do
 		for slot, pet in ipairs(pets) do
+			-- print(pet.petID, pet.petID and C_PetJournal.GetBattlePetLink(pet.petID) or nil)
 			if pet.petID and not C_PetJournal.GetBattlePetLink(pet.petID) then
 				table.insert(missingPets, {team = team, slot = slot})
 				for i = 1, NUM_PET_SKILL_SLOTS do
@@ -136,8 +142,9 @@ hooksecurefunc(addon, 'OnEnable', function()
 			end
 		end
 	end
+
 	if #missingPets > 0 then
 		-- TODO: trigger on demand, avoid in combat etc.
 		StaticPopup_Show('MIDGET_PETTEAM_SCAN')
 	end
-end)
+end

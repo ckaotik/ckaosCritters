@@ -352,5 +352,7 @@ addon.frame:SetScript('OnEvent', function(self, event, ...)
 	if event == 'ADDON_LOADED' and ... == addonName then
 		self:UnregisterEvent(event)
 		addon:OnEnable()
+	elseif addon[event] then
+		addon[event](event, ...)
 	end
 end)
