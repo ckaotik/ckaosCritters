@@ -343,8 +343,10 @@ function addon:OnEnable()
 	-- update current set when team changes
 	hooksecurefunc('PetJournal_UpdatePetLoadOut', addon.Update)
 
-	hooksecurefunc('UnitPopup_HideButtons', CustomizeDropDowns)
-	table.insert(UnitPopupMenus['TARGET'], #UnitPopupMenus['TARGET'], 'PET_SHOW_IN_JOURNAL')
+	-- function UnitPopup_ShowMenu (dropdownMenu, which, unit, name, userData)
+	-- hooksecurefunc('UnitPopup_ShowMenu', print)
+	-- hooksecurefunc('UnitPopup_HideButtons', CustomizeDropDowns)
+	-- table.insert(UnitPopupMenus['TARGET'], #UnitPopupMenus['TARGET'], 'PET_SHOW_IN_JOURNAL')
 end
 
 addon.frame:RegisterEvent('ADDON_LOADED')
