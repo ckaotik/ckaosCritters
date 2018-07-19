@@ -68,7 +68,7 @@ StaticPopupDialogs['MIDGET_PETTEAM_RENAME'] = {
 }
 
 local function OnClick(tab, btn)
-	PlaySound("igCharacterInfoTab")
+	PlaySound(SOUNDKIT.IG_CHARACTER_INFO_TAB)
 	if not tab.teamIndex then
 		addon.AddTeam()
 		addon.UpdateTabs()
@@ -184,10 +184,9 @@ local function SetTeamTooltip(tab)
 	right:SetText(right:GetText() .. weaknesses)
 	right:SetFontObject('GameTooltipText') -- right header is too big/bold
 
+	local r, g, b = _G.GRAY_FONT_COLOR:GetRGB()
 	tooltip:AddLine('|nDouble click to rename this team.')
-	tooltip:AddDoubleLine('SHIFT+Left: link in chat|r', 'CTRL+Right: delete|r',
-		GRAY_FONT_COLOR.r, GRAY_FONT_COLOR.g, GRAY_FONT_COLOR.b,
-		GRAY_FONT_COLOR.r, GRAY_FONT_COLOR.g, GRAY_FONT_COLOR.b)
+	tooltip:AddDoubleLine('SHIFT+Left: link in chat|r', 'CTRL+Right: delete|r', r, g, b, r, g, b)
 
 	tooltip:Show()
 end
